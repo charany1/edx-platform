@@ -1,8 +1,10 @@
 """Tests for account creation"""
 import json
-
+from datetime import datetime
 import ddt
+from mock import patch
 import unittest
+
 from django.contrib.auth.models import User
 from django.test.client import RequestFactory
 from django.conf import settings
@@ -110,6 +112,42 @@ class TestCreateAccount(TestCase):
             }
         )
         self.assertIsNone(profile.year_of_birth)
+
+    @unittest.skipUnless(
+        "microsite_configuration.middleware.MicrositeMiddleware" in settings.MIDDLEWARE_CLASSES,
+        "Microsites not implemented in this environment"
+    )
+    @override_settings(LMS_SEGMENT_KEY="testkey")
+    @patch('student.views.analytics.track')
+    @patch('student.views.analytics.identify')
+    def test_segment_tracking(self, mock_segment_identify, _):
+        year = datetime.now().year
+        self.params.update({
+            "level_of_education": "a",
+            "gender": "o",
+            "mailing_address": "123 Example Rd",
+            "city": "Exampleton",
+            "country": "US",
+            "goals": "To test this feature",
+            "year_of_birth": str(year),
+            "extra1": "extra_value1",
+            "extra2": "extra_value2",
+        })
+
+        expected_payload = {
+            'email': self.params['email'],
+            'username': self.params['username'],
+            'name': self.params['name'],
+            'age': 0,
+            'education': 'Associate degree',
+            'address': '123 Example Rd',
+            'gender': 'Other/Prefer Not to Say',
+            'country': 'US',
+        }
+
+        self.create_account_and_fetch_profile()
+
+        mock_segment_identify.assert_called_with(1, expected_payload)
 
     @unittest.skipUnless(
         "microsite_configuration.middleware.MicrositeMiddleware" in settings.MIDDLEWARE_CLASSES,
