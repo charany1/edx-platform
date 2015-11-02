@@ -281,7 +281,7 @@ console::
     paver test_js_run -s common
     paver test_js_run -s common-requirejs
 
-To run JavaScript tests in a browser:
+To run JavaScript tests in a browser::
 
     paver test_js_dev -s lms
     paver test_js_dev -s lms-coffee
